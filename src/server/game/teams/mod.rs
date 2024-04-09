@@ -1,75 +1,50 @@
 use bevy::{
     app::{App, Plugin},
     prelude::*,
-    render::color::Color,
 };
 
 use self::systems::increment_team_score;
 
 pub struct TeamsPlugin;
 
+mod components;
+mod events;
 mod systems;
 
 impl Plugin for TeamsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<IncrementScore>().add_systems(
+        app.add_event::<events::IncrementScore>().add_systems(
             Update,
-            increment_team_score.run_if(on_event::<IncrementScore>()),
+            increment_team_score.run_if(on_event::<events::IncrementScore>()),
         );
     }
 }
 
-#[derive(Component, Debug)]
-pub struct Team {
-    color: Color,
-    score: u128,
-}
-
-impl Team {
-    pub fn new(color: Color) -> Self {
-        Team { color, score: 0 }
-    }
-
-    /// A player can increment his team score by one
-    pub fn increment_score(&mut self) {
-        self.score += 1;
-    }
-}
-
-#[derive(Component, Debug)]
-pub struct Player {
-    team: Entity,
-}
-
-impl Player {
-    pub fn new(team: Entity) -> Self {
-        Player { team }
-    }
-}
-
-#[derive(Debug, Clone, Event)]
-pub struct IncrementScore {
-    player: Entity,
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use bevy::{app::App, render::color::Color};
+
+    use crate::game::teams::{
+        components::{Player, Team},
+        events::IncrementScore,
+        TeamsPlugin,
+    };
 
     #[test]
-    fn test_team_increment_score() {
-        let mut team = Team::new(Color::RED);
-        team.increment_score();
-        assert_eq!(team.score, 1);
-    }
+    fn increment_team_score_on_event() {
+        let mut app = App::new();
 
-    // test if a incrementscore event increment the player's team score
-    #[test]
-    fn test_increment_score_event() {
-        let mut team = Team::new(Color::RED);
-        let player = Entity::from_raw(0);
-        let event = IncrementScore { player };
-        team.increment_score();
+        app.add_event::<IncrementScore>();
+        app.add_plugins(TeamsPlugin);
+
+        let team = app.world.spawn(Team::new(Color::RED)).id();
+        let player = app.world.spawn(Player::new(team)).id();
+
+        app.world.send_event(IncrementScore { player });
+
+        app.update();
+
+        let team = app.world.get::<Team>(team).expect("Team to be found");
         assert_eq!(team.score, 1);
     }
 }
