@@ -73,6 +73,8 @@ mod tests {
 
         app.update();
 
-        let _player = app.world.query::<&Player>().single(&app.world);
+        let player = app.world.query::<&Player>().single(&app.world);
+
+        assert_eq!(player.team, team);
     }
 }
