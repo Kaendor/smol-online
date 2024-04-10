@@ -14,3 +14,4 @@ path = "src/server/main.rs"
 
 [dependencies]
 bevy = "0.13.2"
+bevy_renet = { version = "0.0"}

@@ -48,6 +48,10 @@ mod tests {
         app
     }
 
+    // TODO: Add player at client joining server
+
+    // TODO: Send event to increment score on player input
+
     #[test]
     fn increment_team_score_on_event() {
         let mut app = teams_app();
