@@ -113,6 +113,8 @@ mod tests {
         client.update();
 
         server.update();
+        client.update();
+        server.update();
 
         let reader = server.world.resource_mut::<Events<ServerEvent>>();
         assert!(!reader.is_empty());
