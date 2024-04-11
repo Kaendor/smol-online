@@ -116,7 +116,10 @@ mod tests {
         client.update();
         server.update();
 
-        let reader = server.world.resource_mut::<Events<ServerEvent>>();
-        assert!(!reader.is_empty());
+        let events = server.world.resource_mut::<Events<ServerEvent>>();
+        let mut reader = events.get_reader();
+        let event = reader.read(&events).next().expect("no event in reader");
+
+        assert!(matches!(event, ServerEvent::ClientConnected { .. }));
     }
 }
