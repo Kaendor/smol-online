@@ -18,12 +18,10 @@ impl Team {
 }
 
 #[derive(Component, Debug)]
-pub struct Player {
-    pub(crate) team: Entity,
-}
+pub struct Player {}
 
 impl Player {
-    pub fn new(team: Entity) -> Self {
-        Player { team }
+    pub fn new() -> Self {
+        Player {}
     }
 }

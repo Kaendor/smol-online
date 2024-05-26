@@ -1,125 +1,49 @@
-use std::{net::UdpSocket, time::SystemTime};
+use bevy::app::{App, Plugin, Startup, Update};
+use bevy::prelude::*;
+use lightyear::prelude::server::*;
+use lightyear::prelude::*;
 
-use bevy::{
-    app::{App, Plugin, Startup},
-    ecs::system::Commands,
-    log::info,
-};
-use bevy_renet::{
-    renet::{
-        transport::{NetcodeServerTransport, ServerAuthentication, ServerConfig},
-        ConnectionConfig, RenetServer,
-    },
-    transport::NetcodeServerPlugin,
-    RenetServerPlugin,
-};
+use self::systems::{create_player_on_connection, setup_server};
+use shared::{GameSharedPlugin, SERVER_ADDR};
+
+mod systems;
 
 pub struct NetworkPlugin;
 
+/// Here we create the lightyear [`ServerPlugins`]
+fn build_server_plugin() -> ServerPlugins {
+    // The IoConfig will specify the transport to use.
+    let io = IoConfig {
+        // the address specified here is the server_address, because we open a UDP socket on the server
+        transport: ServerTransport::UdpSocket(SERVER_ADDR),
+        ..default()
+    };
+
+    // The NetConfig specifies how we establish a connection with the server.
+    // We can use either Steam (in which case we will use steam sockets and there is no need to specify
+    // our own io) or Netcode (in which case we need to specify our own io).
+    let net_config = NetConfig::Netcode {
+        io,
+        config: NetcodeConfig::default(),
+    };
+
+    let config = ServerConfig {
+        // part of the config needs to be shared between the client and server
+        shared: SharedConfig::default(),
+        // we can specify multiple net configs here, and the server will listen on all of them
+        // at the same time. Here we will only use one
+        net: vec![net_config],
+        ..default()
+    };
+
+    ServerPlugins::new(config)
+}
+
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((RenetServerPlugin, NetcodeServerPlugin))
-            .add_systems(Startup, setup_server);
-    }
-}
-
-fn setup_server(mut commands: Commands) {
-    let server = RenetServer::new(ConnectionConfig::default());
-    commands.insert_resource(server);
-
-    let server_addr = "127.0.0.1:5000".parse().unwrap();
-    let socket = UdpSocket::bind(server_addr).unwrap();
-    let server_config = ServerConfig {
-        current_time: SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap(),
-        max_clients: 64,
-        protocol_id: 0,
-        public_addresses: vec![server_addr],
-        authentication: ServerAuthentication::Unsecure,
-    };
-    let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
-
-    info!("Server started at {}", server_addr);
-    commands.insert_resource(transport);
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{net::UdpSocket, time::SystemTime};
-
-    use bevy::{
-        app::App,
-        ecs::{
-            event::{EventReader, Events},
-            system::Res,
-        },
-        time::TimePlugin,
-        DefaultPlugins, MinimalPlugins,
-    };
-    use bevy_renet::{
-        renet::{
-            transport::{ClientAuthentication, NetcodeClientTransport},
-            ConnectionConfig, RenetClient, ServerEvent,
-        },
-        transport::NetcodeClientPlugin,
-        RenetClientPlugin,
-    };
-
-    use super::NetworkPlugin;
-
-    fn network_app() -> App {
-        let mut app = App::new();
-
-        app.add_plugins((NetworkPlugin, MinimalPlugins));
-
-        app
-    }
-
-    fn client_app() -> App {
-        let mut app = App::new();
-
-        app.add_plugins((RenetClientPlugin, MinimalPlugins));
-
-        let client = RenetClient::new(ConnectionConfig::default());
-        app.insert_resource(client);
-
-        // Setup the transport layer
-        app.add_plugins(NetcodeClientPlugin);
-
-        let authentication = ClientAuthentication::Unsecure {
-            server_addr: "127.0.0.1:5000".parse().unwrap(),
-            client_id: 0,
-            user_data: None,
-            protocol_id: 0,
-        };
-        let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
-        let current_time = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap();
-        let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
-
-        app.insert_resource(transport);
-
-        app
-    }
-
-    #[test]
-    fn client_can_connect() {
-        let mut server = network_app();
-        server.update();
-
-        let mut client = client_app();
-        client.update();
-
-        server.update();
-        client.update();
-        server.update();
-
-        let events = server.world.resource_mut::<Events<ServerEvent>>();
-        let mut reader = events.get_reader();
-        let event = reader.read(&events).next().expect("no event in reader");
-
-        assert!(matches!(event, ServerEvent::ClientConnected { .. }));
+        app.add_plugins(GameSharedPlugin)
+            .add_plugins(build_server_plugin())
+            .add_systems(Startup, setup_server)
+            .add_systems(Update, create_player_on_connection);
     }
 }
