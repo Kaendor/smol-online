@@ -4,15 +4,12 @@ use bevy::{
 };
 use game::ServerPlugin;
 
-use shared::GameSharedPlugin;
-
 mod game;
 
 fn main() {
     App::new()
         .add_plugins((
             MinimalPlugins,
-            GameSharedPlugin,
             ServerPlugin,
             LogPlugin::default(),
             TransformPlugin,
