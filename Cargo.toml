@@ -19,6 +19,7 @@ path = "src/shared/lib.rs"
 [dependencies]
 bevy = "0.13.2"
 serde = { version = "1.0", features = ["derive"] }
-# lightyear = { version = "0.15" }
+
 bevy_replicon = { version = "0.26" }
 bevy_replicon_renet = { version = "0.3" }
+bevy_ecs_tilemap = { git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main" }
