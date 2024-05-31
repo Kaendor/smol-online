@@ -18,8 +18,20 @@ use bevy_replicon_renet::{
 
 use bevy::ecs::system::Commands;
 
+use super::TileSelection;
+
 const PORT: u16 = 5000;
 const PROTOCOL_ID: u64 = 0;
+
+pub fn handle_tile_selection(
+    mut tile_selection_events: EventReader<FromClient<TileSelection>>,
+    mut server: Res<RenetServer>,
+) {
+    for FromClient { client_id, event } in tile_selection_events.read() {
+        let position = event.0;
+        info!(client = client_id.get(), "Tile selected: {position:?}");
+    }
+}
 
 pub fn handle_connections(mut server_events: EventReader<ServerEvent>) {
     for event in server_events.read() {
