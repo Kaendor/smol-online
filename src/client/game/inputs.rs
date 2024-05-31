@@ -1,6 +1,7 @@
 use bevy::{
     input::{mouse::MouseButtonInput, ButtonState},
     prelude::*,
+    window::PrimaryWindow,
 };
 use shared::events::TileSelection;
 
@@ -15,15 +16,14 @@ impl Plugin for PlayerInputPlugin {
 fn handle_click(
     mut mouse_button_input: EventReader<MouseButtonInput>,
     mut click_events: EventWriter<TileSelection>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     for event in mouse_button_input.read() {
-        if event.state == ButtonState::Released {
-            println!("Mouse button released!");
-        }
-
         if event.state == ButtonState::Pressed {
-            println!("Mouse button pressed!");
-            let player_position = Vec2::ZERO;
+            let window = windows.single();
+
+            let player_position = window.cursor_position().unwrap_or_default();
+            println!("Clicked at {:?}", player_position);
 
             click_events.send(TileSelection(player_position));
         }

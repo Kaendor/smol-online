@@ -19,3 +19,8 @@ impl Plugin for ClientPlugin {
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
+
+#[inline]
+pub fn world_to_grid_pos(world: Vec2) -> IVec2 {
+    world.floor().as_ivec2()
+}
